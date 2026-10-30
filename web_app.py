@@ -10,10 +10,13 @@ from datetime import datetime
 from templates import DASHBOARD_HTML, LANDING_HTML
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("FLASK_SECRET_KEY", secrets.token_hex(24))
+app.secret_key = os.environ.get("FLASK_SECRET_KEY") or secrets.token_hex(24)  # empty value → random
 
 DASH_USER = os.environ.get("DASH_USER", "admin")
 DASH_PASS = os.environ.get("DASH_PASS", "changeme")
+if DASH_PASS == "changeme":
+    print("[WARN] Using default dashboard password — set DASH_USER/DASH_PASS in .env "
+          "(the dashboard listens on all network interfaces).")
 
 @app.route("/")
 def home():
@@ -23,7 +26,7 @@ def home():
 def login():
     username = request.form.get("username", "")
     password = request.form.get("password", "")
-    if username == DASH_USER and password == DASH_PASS:
+    if secrets.compare_digest(username, DASH_USER) & secrets.compare_digest(password, DASH_PASS):
         session["authenticated"] = True
         return redirect(url_for("dashboard"))
     return redirect(url_for("home") + "?error=1")
@@ -84,17 +87,24 @@ def api_summary():
 def update_controls():
     if not session.get("authenticated"):
         return jsonify({"error": "Unauthorized"}), 401
-    data = request.get_json() or {}
-    with state_lock:
+    data = request.get_json(silent=True) or {}
+    updates = {}
+    try:
         if "mode" in data:
-            shared_state["mode"] = str(data["mode"])
+            if data["mode"] not in ("lanes", "heatmap", "speed", "timer"):
+                raise ValueError("mode")
+            updates["mode"] = data["mode"]
         if "speed_limit" in data:
-            shared_state["speed_limit"] = int(data["speed_limit"])
+            updates["speed_limit"] = min(200, max(5, int(float(data["speed_limit"]))))
         if "incident_timeout" in data:
-            shared_state["incident_timeout"] = float(data["incident_timeout"])
+            updates["incident_timeout"] = min(120.0, max(1.0, float(data["incident_timeout"])))
         if "conf_threshold" in data:
-            shared_state["conf_threshold"] = float(data["conf_threshold"])
-    return jsonify({"status": "success", "settings": data})
+            updates["conf_threshold"] = min(0.95, max(0.05, float(data["conf_threshold"])))
+    except (TypeError, ValueError):
+        return jsonify({"error": "Invalid settings"}), 400
+    with state_lock:
+        shared_state.update(updates)
+    return jsonify({"status": "success", "settings": updates})
 
 def run_flask():
     log = logging.getLogger("werkzeug")

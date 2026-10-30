@@ -516,7 +516,7 @@ DASHBOARD_HTML = """
     <table>
       <thead><tr>
         <th>Lane</th><th>Cars</th><th>Buses</th><th>Trucks</th><th>Bikes</th>
-        <th>Total</th><th>LOS</th><th>Flow/min</th><th>Queue@Red</th><th>Status</th><th>Trend</th><th style="color:var(--accent)">Pred&#160;15s</th>
+        <th>Total</th><th>LOS</th><th>Flow/min</th><th>Queue@Red</th><th>Status</th><th>Trend</th><th style="color:var(--accent)">Pred&#160;15s</th><th>Crossed</th><th>Signal</th>
       </tr></thead>
       <tbody id="lane-tbody"></tbody>
     </table>
@@ -800,7 +800,8 @@ function renderData(s, hist) {
   const emb=document.getElementById('em-banner');
   if(s.emergency_active){
     emb.style.display='block';
-    document.getElementById('em-txt').textContent='Lane '+s.emergency_lane+' given priority — timer extended';
+    document.getElementById('em-txt').textContent=(s.ambulance_ids?.length?'Ambulance #'+s.ambulance_ids.join(', #')+' in ':'')
+      +'Lane '+s.emergency_lane+' — signal pre-empting to give it green';
   } else emb.style.display='none';
 
   // Incidents
@@ -831,6 +832,12 @@ function renderData(s, hist) {
     const isSelected=String(selectedLane)===String(lid);
     const lc=LOS_COL[los]||'#64748b';
     const flowDisp=typeof flow==='number'?flow.toFixed(1):flow;
+    const dirs=Object.entries((s.lane_directions||{})[lid]||{});
+    const dirDisp=dirs.length?dirs.map(([d,n])=>`${d}&#160;${n}`).join(' · '):'—';
+    const sig=s.signal||{};
+    const sigDisp=String(sig.green)===String(lid)
+      ?(sig.phase==='yellow'?`<b style="color:#facc15">YELLOW ${sig.remaining}s</b>`:`<b style="color:#4ade80">GREEN ~${sig.remaining}s</b>`)
+      :(sig.waits&&sig.waits[lid]!=null?`<span style="color:#f87171">RED ~${sig.waits[lid]}s</span>${String(sig.next)===String(lid)?' <small>next</small>':''}`:'—');
     const predDisp=mlReady&&pred!=null?`<span style="color:var(--accent);font-weight:700">${pred}</span>`:`<span style="color:var(--muted);font-size:.72rem">warmup</span>`;
     tb.innerHTML+=`
       <tr onclick="selectLane('${lid}')" ${isSelected?'class="lane-selected"':''} id="lane-row-${lid}">
@@ -844,6 +851,8 @@ function renderData(s, hist) {
         <td>${statusPill(total)}</td>
         <td>${trendEl(arrow)}</td>
         <td>${predDisp}</td>
+        <td style="font-size:.78rem">${dirDisp}</td>
+        <td>${sigDisp}</td>
       </tr>`;
   }
   if(selectedLane)document.getElementById('filter-hint').textContent='Lane '+selectedLane+' selected — click again to deselect';

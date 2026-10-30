@@ -25,6 +25,10 @@ shared_state = {
     "tailgating":    [],   # list of {id_a, id_b, lane} this frame
     "lane_predictions": {},  # {lane_id_str: predicted_count_in_15s}
     "ml_ready":      False,  # True once RF model has trained
+    "lane_directions": {},   # {lane_id_str: {"N": n, "S": n, ...}} line crossings by direction
+    "signal":        {},     # SignalController.plan(): green, phase, remaining, waits, next, reason
+    "ambulance_ids": [],     # confirmed ambulance track IDs
+    "ambulance_model": False,
     "speed_limit":   SPEED_LIMIT_KMPH,   # expose config for dashboard
     "incident_timeout": INCIDENT_TIMEOUT,
     "conf_threshold": CONF_THRESHOLD,

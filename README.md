@@ -8,25 +8,32 @@ Featuring a premium, two-way interactive **Control Panel** allowing live paramet
 
 ## ✨ Features
 
-| Feature | Description |
-|---|---|
-| ⚙️ Interactive Control Panel | Collapsible sidebar for live web-based parameter configuration |
-| 🎯 Multi-Object Tracking | ByteTrack algorithm with unique vehicle IDs |
-| ⚡ Lane-Level Analytics | Per-lane counts, Level of Service (LOS) A–F grading, flow rate, queue length |
-| 📷 Speed Camera | Pixel-to-meter calibrated speed estimation + dynamic speeding cameras + CSV logging |
-| ⚠️ Incident Detection | Dynamic threshold incident tracking for stopped vehicles (>2s to 30s) |
-| 🚨 Emergency Priority | Auto signal timer extension for emergency vehicles |
-| 📊 Live Chart History | 2-minute rolling bar/line chart (Chart.js) |
-| 🔥 Heatmap Overlay | Accumulative density heatmap via OpenCV |
-| 📈 Trend Prediction | Rolling linear regression per lane |
-| 💾 CSV Data Logging | Every detection and violation exported for offline analysis |
-| 🔐 Auth-Protected Dashboard | Login-gated live dashboard with session management |
+| Feature                        | Description                                                                                                      |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
+| ⚙️ Interactive Control Panel | Collapsible sidebar for live web-based parameter configuration                                                   |
+| 🎯 Multi-Object Tracking       | ByteTrack algorithm with unique vehicle IDs                                                                      |
+| 🛣️ Auto Lane Mapping         | Lanes mapped from vehicle trajectories (vanishing-point wedges), Y/N confirm, manual 4-click fallback            |
+| 📐 Auto Speed Calibration      | Camera height/horizon from car sizes, depth scale from lane dashes — no manual pixel-to-metre                   |
+| ⚡ Lane-Level Analytics        | Per-lane counts, Level of Service (LOS) A–F grading, flow rate, queue length                                    |
+| 📷 Speed Camera                | Auto-calibrated ground-plane speed estimation + dynamic speeding cameras + CSV logging                           |
+| ⚠️ Incident Detection        | Dynamic threshold incident tracking for stopped vehicles (>2s to 30s)                                            |
+| 🚑 Ambulance Detection         | Open-vocabulary YOLO-World ("ambulance" prompt) confirms ambulances on tracked vehicles and pre-empts the signal |
+| 🚦 Actuated Signal Control     | Min green, gap-out on line-crossing detectors, demand-scaled max green, yellow clearance, starvation guard       |
+| ⏱️ Accurate Wait Times       | Red-lane waits predicted with the same priority rule the controller applies                                      |
+| ➖ Line-Crossing Counts        | Per-lane count line (travel axis learned from motion) with N/S/E/W direction totals                              |
+| 🧭 Vehicle Heading             | Per-vehicle compass heading; EMA-smoothed speeds                                                                 |
+| 📊 Live Chart History          | 2-minute rolling bar/line chart (Chart.js)                                                                       |
+| 🔥 Heatmap Overlay             | Accumulative density heatmap via OpenCV                                                                          |
+| 📈 Trend Prediction            | Rolling linear regression per lane                                                                               |
+| 💾 CSV Data Logging            | Every detection and violation exported for offline analysis                                                      |
+| 🔐 Auth-Protected Dashboard    | Login-gated live dashboard with session management                                                               |
 
 ---
 
 ## ⚙️ Interactive Control Panel & Sidebar
 
 TraffiQ transitions from a passive monitor to an active control center via its dynamic two-way **Control Panel**:
+
 * **Collapsible Sidebar:** Open and close the control console via the hovering gear (`⚙️`) button or `Escape` key. Styled with blur backdrops and neon-purple glow themes.
 * **Visualization Mode Toggles:** Switch between active processing modes (`Lanes`, `Heatmap`, `Speed`, `Timer`) dynamically. The underlying OpenCV pipeline renders the corresponding overlay instantly.
 * **Dynamic Speed Trigger Limit:** Adjust speeding camera threshold (20 - 120 km/h) on the fly via slider control. Bounding boxes highlight speeding vehicles instantly.
@@ -39,42 +46,52 @@ TraffiQ transitions from a passive monitor to an active control center via its d
 ## 🚀 Getting Started
 
 ### 1. Clone the repo
+
 ```bash
 git clone https://github.com/Varn1t/Traffic-Intelligence.git
 cd "Traffic Intelligence"
 ```
 
 ### 2. Install dependencies
+
 ```bash
 pip install -r requirements.txt
 ```
 
 ### 3. Set your credentials
+
 Copy the example env file and fill in your own values:
+
 ```bash
 cp .env.example .env
 ```
+
 Edit `.env`:
+
 ```
 DASH_USER=your_username
 DASH_PASS=your_password
 ```
 
 ### 4. Add your video file
+
 Place your traffic video in the project folder and update `VIDEO_PATH` in `config.py`:
+
 ```python
 VIDEO_PATH = "Traffic_Video.mp4"
 ```
 
 ### 5. Run the System
+
 ```bash
 python main.py
 ```
 
-1. **ROI Selector Box:** The application opens an interactive OpenCV selection window. Use your mouse to draw rectangular boundaries for each lane.
-2. **Press ENTER** when lanes are set.
-3. The YOLOv8 model runs in a background thread, starts local camera playback, and spins up the live dashboard.
-4. Open **http://localhost:5050** in your browser, log in, and control the system dynamically.
+1. **Auto lane mapping (~15 s):** TraffiQ watches the first `AUTO_LANE_FRAMES` frames, tracks vehicles, and maps each lane from where traffic actually drives (lanes are wedges meeting at the road's vanishing point, so they follow perspective).
+2. **"Are the lanes correctly mapped?"** Press **Y** to continue, or **N** to draw them yourself (click the 4 corners of each lane, **U** to undo, **ENTER** when done).
+3. **Speed calibration is automatic:** camera height and horizon are learned from the sizes of passing cars, and the depth scale from dashed lane markings (`DASH_CYCLE_M`, 12 m for US/Canada highways). It keeps refining while running; the HUD shows `CAL: cam …m f …px (dashes|cars|guess)`.
+4. The YOLOv8 model runs in a background thread, starts local camera playback, and spins up the live dashboard.
+5. Open **http://localhost:5050** in your browser, log in, and control the system dynamically.
 
 ---
 
@@ -82,6 +99,7 @@ python main.py
 
 - **Python** — core logic
 - **YOLOv8** (Ultralytics) — vehicle detection
+- **YOLO-World** (Ultralytics) — zero-shot ambulance detection
 - **ByteTrack** (Supervision) — multi-object tracking
 - **OpenCV** — video processing & heatmap overlays
 - **Flask** — web server & REST API

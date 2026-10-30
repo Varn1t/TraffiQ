@@ -44,3 +44,14 @@ env/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# ── AI tool folders / local drafts / handoff notes ──
+.claude/
+.codex/
+.gemini/
+.ai/
+.obsidian/
+.cursor/
+.windsurf/
+_drafts/
+*_last_context.md
